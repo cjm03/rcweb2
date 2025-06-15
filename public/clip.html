@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Clip Viewer</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                background: #121212;
+                color: #eee;
+                padding: 1em;
+                text-align: center;
+            }
+            nav {
+                margin-bottom: 1em;
+            }
+            nav a {
+                color: #eee;
+                text-decoration: none;
+                padding: 0.5em 1em;
+                background: #333;
+                border-radius: 4px;
+            }
+            nav a:hover {
+                background: #444;
+            }
+            video {
+                width: 90%;
+                max-width: 720px;
+                border-radius: 8px;
+            }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <a href="/">Home</a>
+        </nav>
+        <h2>Viewing Clip: %s</h2>
+        <video controls>
+            <source src="%s" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+
+        <!-- <video controls id="videoPlayer"></video> -->
+        <!-- <script> -->
+        <!--     const params = new URLSearchParams(window.location.search); -->
+        <!--     const clipId = params.get("id"); -->
+        <!---->
+        <!--     document.getElementById("clipId").textContent = clipId; -->
+        <!--     document.getElementById("videoPlayer").src = "/stream?id=" + encodeURIComponent(clipId); -->
+        <!-- </script> -->
+    </body>
+</html>
