@@ -34,7 +34,6 @@ int main(void)
     printf("Initializing hashtable\n");
     scanDir(&table, "media");
     printf("Indexed clips:\n");
-    iterateClips(&table, printClip, NULL);
 
     printf("\n\n\nStarting server...\n");
 

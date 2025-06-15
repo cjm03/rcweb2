@@ -35,13 +35,6 @@ unsigned long djb2(const char* s)
 
 /* functions ****************************************************/
 
-void initTable(Table* table)
-{
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        table->buckets[i] = NULL;
-    }
-}
-
 void insertClip(Table* table, const char* name, const char* path, size_t filesize)
 {
     unsigned long index = djb2(name);
