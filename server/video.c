@@ -17,7 +17,7 @@
 #include <errno.h>
 
 #include "video.h"
-#include "ht2.h"
+#include "hashtable.h"
 
 #define BUFFER_SIZE 4096
 
@@ -57,9 +57,9 @@ void serveFile(int client_fd, const char* filepath)
     return;
 }
 
-void serveVideo(int client_fd, const char* clip_id, Table* table)
+void serveVideo(Table* t, int client_fd, const char* clip_id)
 {
-    Clip* clip = getClip(table, clip_id);
+    Item* clip = getItem(t, clip_id);
     if (!clip) {
         const char* not_found = "HTTP/1.1 404 Not Found\r\n\r\nClip not Found";
         write(client_fd, not_found, strlen(not_found));
@@ -78,11 +78,11 @@ void serveVideo(int client_fd, const char* clip_id, Table* table)
              "HTTP/1.1 200 OK\r\n"
              "Content-Length: %zu\r\n"
              "Content-Type: video/mp4\r\n"
-             "Connection: close\r\n\r\n", clip->filesize);
+             "Connection: close\r\n\r\n", clip->size);
     write(client_fd, header, strlen(header));
 
     off_t offset = 0;
-    off_t len = clip->filesize;
+    off_t len = clip->size;
     if (sendfile(file_fd, client_fd, offset, &len, NULL, 0) == -1) {
         if (errno == EPIPE || errno == ECONNRESET) {
             printf("sendfile ok");
@@ -92,10 +92,9 @@ void serveVideo(int client_fd, const char* clip_id, Table* table)
         }
     }
     close(file_fd);
-    free(clip->name);
-    free(clip->path);
-    free(clip->next);
-    free(clip);
+    // free(clip->id);
+    // free(clip->path);
+    // free(clip);
     close(client_fd);
     return;
 }

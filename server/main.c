@@ -20,34 +20,39 @@
 #include <dirent.h>
 
 #include "router.h"
-#include "ht2.h"
+#include "hashtable.h"
 #include "parse.h"
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
 
-static Table table = {0};
 
 int main(void)
 {
-    /* Initialize and fill hash table */
+    /* Initialize */
     printf("Initializing hashtable\n");
-    scanDir(&table, "media");
-    printf("Indexed clips:\n");
+    Table* t = createTable();
+    printf("Initialized\n");
 
-    printf("\n\n\nStarting server...\n");
+    /* Populate */
+    loadClipsFromDir(t, "media");
 
     /* Start server */
+    printf("\n\n\nStarting server...\n");
     int server_fd = socket(AF_INET, SOCK_STREAM, 0); // assigns server_fd with a file descriptor referring to the endpoint created by socket()
     struct sockaddr_in addr = {0};
     addr.sin_family = AF_INET;
     inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr); // converts 127.0.0.1 into binary network address structure then copies it into addr.sin_addr 
     addr.sin_port = htons(PORT);
-    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+
+    if (bind(server_fd, (struct sockaddr*)&addr, sizeof(addr)) != 0)
+    {
         perror("bind");
         exit(EXIT_FAILURE);
     }
-    if (listen(server_fd, 10) != 0) {
+
+    if (listen(server_fd, 10) != 0)
+    {
         perror("listen");
         exit(EXIT_FAILURE);
     }
@@ -64,25 +69,10 @@ int main(void)
 
         struct Request* req = parseRequest(buffer);
         if (req) printf("Testing Method: %d\n", req->method);
-        //     printf("URI: %s\n", req->url);
-        //     printf("Version: %s\n", req->version);
-        //     puts("Headers:");
-        //     struct Header* h;
-        //     for (h = req->headers; h; h = h->next) {
-        //         printf("%-32s: %s\n", h->name, h->value);
-        //     }
-        //     puts("msgbody:");
-        //     puts(req->body);
-        // }
-        handleRequest(client_fd, req, &table);
+        handleRequest(t, client_fd, req);
         close(client_fd);
         freeRequest(req);
-
-        // printf("Request:\n%s\n", buffer);
-        // handleRequest(client_fd, buffer);
-
     }
-    freeTable(&table);
     return 0;
 }
 

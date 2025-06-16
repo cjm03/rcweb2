@@ -5,27 +5,16 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define TABLE_SIZE 128
-
-typedef struct Clip {
-    char* name;
-    char* path;
-    size_t filesize;
-    struct Clip* next;
-} Clip;
-
-typedef struct Table {
-    Clip* buckets[TABLE_SIZE];
-} Table;
+#include "struct.h"
 
 
 /* prototypes ***************************************************/
 
 // takes in a string that should be a clip id from a Clip* structure, returns a hash
-unsigned long djb2(const char* s);
+unsigned long djb2(const char* id);
 
 // populates the table in hashtable.c with TABLE_SIZE elements initialized to NULL
-void initTable(Table* table);
+void initTable(void);
 
 // takes in an id string, filename, and size of the file
 // calls djb2 to get a hash from the id parameter and assigns it to index
@@ -34,7 +23,7 @@ void initTable(Table* table);
 // assigns the pointer to the next element with the hash assigned to index
 // assigns the table element at the index of the hash with newclip
 // *** essentially, the newclip->next is its own index until a new clip is inserted
-void insertClip(Table* table, const char* name, const char* path, size_t filesize);
+void insertClip(const char* id, const char* filepath, size_t filesize);
 
 // takes in a string that should be a clip id from a Clip* structure
 // gets the hash of the id and stores it in index
@@ -42,23 +31,23 @@ void insertClip(Table* table, const char* name, const char* path, size_t filesiz
 // enters a while loop unless cur is empty, which would return NULL and exit the func
 // compares the id of cur with the id passed to the function, returns the structure if they match
 // otherwise, cur is assigned its pointer to next, repeats until found or exits
-Clip* getClip(Table* table, const char* name);
+Clip* getClip(const char* id);
 
 
-int ismp4(const char* name);
 
-
-void scanDir(Table* table, const char* basepath);
+void loadFromDir(const char* directory);
 
 // iterates through the table freeing each clip structure until table is empty
-void freeTable(Table* table);
+void freeTable(void);
 
 // still unsure how exactly this works.
-void iterateClips(Table* table, void (*callback)(Clip* clip, void *ctx), void *ctx);
+void iterateClips(void (*callback)(Clip* clip, void *ctx), void *ctx);
 
 
 void printClip(Clip* clip, void* ctx);
 
+
+void printTable(void);
 // unsigned long djb2(const char* s);
 // void initHashTable(void);
 // void displayHashTable(void);

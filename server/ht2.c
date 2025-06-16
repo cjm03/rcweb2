@@ -17,9 +17,10 @@
 #include <sys/stat.h>
 
 #include "ht2.h"
+#include "struct.h"
 
 
-// static Clip* Table[TABLE_SIZE];
+static Table* table;
 
 /* hash *********************************************************/
 
@@ -30,28 +31,51 @@ unsigned long djb2(const char* s)
     while ((c = *s++)) {
         hash = ((hash << 5) + hash) + c;
     }
-    return hash % TABLE_SIZE;
+    return hash % TBLSZ;
 }
 
-/* functions ****************************************************/
+/* init *********************************************************/
 
-void insertClip(Table* table, const char* name, const char* path, size_t filesize)
+void initTable(void)
 {
-    unsigned long index = djb2(name);
-    Clip* newclip = malloc(sizeof(Clip));
-    newclip->name = strdup(name);
-    newclip->path = strdup(path);
+    if (table == NULL) {
+        printf("TABLE IS NULL\n");
+        return;
+    }
+    for (int i = 0; i < TBLSZ; ++i) {
+        table->buckets[i] = NULL;
+    }
+}
+
+void insertClip(const char* id, const char* filepath, size_t filesize)
+{
+    unsigned long index = djb2(id);
+    Clip* newclip = calloc(1, sizeof(Clip));
+    if (newclip == NULL) {
+        perror("calloc");
+        exit(EXIT_FAILURE);
+    }
+    newclip->id = strdup(id);
+    newclip->filepath = strdup(filepath);
     newclip->filesize = filesize;
+
+    printf("FILESIZE ASSIGNED\n");
+
     newclip->next = table->buckets[index];
+
+    printf("PTR TO NEXT ASSIGNED CURRENT HASH REP. INDEX\n");
+
     table->buckets[index] = newclip;
+
+    printf("BUCKET AT HASH INDEX ASSIGNED NEWCLIP\n");
 }
 
-Clip* getClip(Table* table, const char* name)
+Clip* getClip(const char* id)
 {
-    unsigned long index = djb2(name);
+    unsigned long index = djb2(id);
     Clip* cur = table->buckets[index];
     while (cur) {
-        if (strcmp(cur->name, name) == 0) {
+        if (strcmp(cur->id, id) == 0) {
             return cur;
         }
         cur = cur->next;
@@ -59,13 +83,13 @@ Clip* getClip(Table* table, const char* name)
     return NULL;
 }
 
-int ismp4(const char* name)
-{
-    const char* ext = strrchr(name, '.');
-    return ext && strcmp(ext, ".mp4") == 0;
-}
+// int ismp4(const char* id)
+// {
+//     const char* ext = strrchr(id, '.');
+//     return ext && strcmp(ext, ".mp4") == 0;
+// }
 
-void scanDir(Table* table, const char* directory)
+void loadFromDir(const char* directory)
 {
     DIR* dir = opendir(directory);
     if (!dir) {
@@ -76,15 +100,18 @@ void scanDir(Table* table, const char* directory)
     struct dirent* entry;
     while ((entry = readdir(dir))) {
         if (entry->d_type == DT_REG) {
-            if (ismp4(entry->d_name)) {
-                char name[256] = {0};
-                snprintf(name, sizeof(name), "%.*s", (int)(strlen(entry->d_name) - 4), entry->d_name);
-                char path[512];
-                snprintf(path, sizeof(path), "%s/%s", directory, entry->d_name);
+            if (strstr(entry->d_name, ".mp4")) {
+
+                char id[256] = {0};
+                snprintf(id, sizeof(id), "%.*s", (int)(strlen(entry->d_name) - 4), entry->d_name);
+
+                char filepath[512];
+                snprintf(filepath, sizeof(filepath), "%s/%s", directory, entry->d_name);
+
                 struct stat st;
-                if (stat(path, &st) == 0) {
-                    insertClip(table, entry->d_name, path, st.st_size);
-                    printf("Loaded clip: %s\n", name);
+                if (stat(filepath, &st) == 0) {
+                    insertClip(id, filepath, st.st_size);
+                    printf("Loaded clip: %s\n", id);
                 }
             }
         }
@@ -92,23 +119,23 @@ void scanDir(Table* table, const char* directory)
     closedir(dir);
 }
 
-void freeTable(Table* table)
+void freeTable(void)
 {
-    for (int i = 0; i < TABLE_SIZE; i++) {
+    for (int i = 0; i < TBLSZ; i++) {
         Clip* cur = table->buckets[i];
         while (cur) {
             Clip* next = cur->next;
-            free(cur->name);
-            free(cur->path);
+            free(cur->id);
+            free(cur->filepath);
             free(cur);
             cur = next;
         }
     }
 }
 
-void iterateClips(Table* table, void (*callback)(Clip *clip, void *ctx), void *ctx)
+void iterateClips(void (*callback)(Clip *clip, void *ctx), void *ctx)
 {
-    for (int i = 0; i < TABLE_SIZE; i++) {
+    for (int i = 0; i < TBLSZ; i++) {
         Clip* clip = table->buckets[i];
         while (clip) {
             callback(clip, ctx);
@@ -120,27 +147,19 @@ void iterateClips(Table* table, void (*callback)(Clip *clip, void *ctx), void *c
 void printClip(Clip* clip, void* ctx)
 {
     (void)ctx;
-    printf("%s - %s (%ld bytes)\n", clip->name, clip->path, clip->filesize);
+    printf("%s - %s (%ld bytes)\n", clip->id, clip->filepath, clip->filesize);
 }
 
-// void displayHashTable(void)
-// {
-//     printf("Start\n");
-//     for (int i = 0; i < TABLE_SIZE; i++) {
-//         if (htTable[i] == NULL) {
-//             printf("\tK: -------- P: --------\n");
-//         } else {
-//             printf("\tK: %s P: --------\n", htTable[i]->key);
-//         }
-//     }
-//     printf("End\n");
-// }
-
-/* main ********************************************************************/
-
-
-
-
-
-
+void printTable(void)
+{
+    printf("Start Table:\n");
+    for (int i = 0; i < TBLSZ; i++) {
+        Clip* iter = table->buckets[i];
+        if (iter == NULL) {
+            printf("---EMPTY-BUCKET---\n");
+        } else {
+            printf("\nid: %s\npath: %s\nsize: %ld\n\n", iter->id, iter->filepath, iter->filesize);
+        }
+    }
+}
 
